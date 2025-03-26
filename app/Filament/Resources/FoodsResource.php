@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\FoodsResource\Pages;
 use App\Filament\Resources\FoodsResource\RelationManagers;
 use App\Models\Foods;
+use DateTime;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -25,25 +26,52 @@ class FoodsResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('description')
+                    ->columnSpanFull(),
+                Forms\Components\RichEditor::make('description')
                     ->required()
                     ->columnSpanFull(),
-                Forms\Components\TextInput::make('images')
+                Forms\Components\FileUpload::make('images')
+                    ->image()
+                    ->directory('foods')
                     ->required()
-                    ->maxLength(255),
+                    ->columnSpanFull(),
                 Forms\Components\TextInput::make('price')
                     ->required()
                     ->numeric()
-                    ->prefix('$'),
+                    ->columnSpanFull()
+                    ->prefix('Rp')
+                    ->reactive(), //memicu perubahan pada field lain
+                Forms\Components\Toggle::make('is_promo')
+                    ->reactive(),
+                Forms\Components\Select::make('percent')
+                    ->options([
+                        10 => '10%',
+                        15 => '15%',
+                        20 => '20%',
+                        30 => '30%',
+                    ])
+                    ->columnSpanFull()
+                    ->reactive()
+                    ->hidden(fn($get) => !$get('is_promo'))
+                    ->afterStateUpdated(function ($set, $get, $state) {
+                        if ($get('is_promo') && $get('price') && $get('percent')) {
+                            $discount = ($get('price') * (int)$get('percent')) / 100;
+                            $set('price_afterdiscount', $get('price') - $discount);
+                        } else {
+                            $set('price_afterdiscount', $get('price'));
+                        }
+                    }) , //Only active when is_promo is on true condition
+
                 Forms\Components\TextInput::make('price_afterdiscount')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('percent')
-                    ->maxLength(255),
-                Forms\Components\Toggle::make('is_promo'),
-                Forms\Components\TextInput::make('categories_id')
+                    ->numeric()
+                    ->prefix('Rp')
+                    ->readOnly()
+                    ->columnSpanFull()
+                    ->hidden(fn($get) => !$get('is_promo')),
+                Forms\Components\Select::make('categories_id')
                     ->required()
-                    ->numeric(),
+                    ->columnSpanFull()
+                    ->relationship('categories', 'name'),
             ]);
     }
 
@@ -52,21 +80,31 @@ class FoodsResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Nama makanan')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('images')
-                    ->searchable(),
+                Tables\Columns\ImageColumn::make('images')
+                    ->label('Gambar'),
                 Tables\Columns\TextColumn::make('price')
-                    ->money()
+                    ->label('Harga')
+                    ->money('IDR')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('price_afterdiscount')
-                    ->searchable(),
+                    ->label('Harga setelah diskon')
+                    ->money('IDR')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('percent')
-                    ->searchable(),
-                Tables\Columns\IconColumn::make('is_promo')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('categories_id')
+                    ->label('potongan persen')
                     ->numeric()
                     ->sortable(),
+                Tables\Columns\IconColumn::make('is_promo')
+                    ->label('Promo status')
+                    ->boolean()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('categories.name')
+                    ->label('kategori makanan')
+                    ->sortable()
+                    ->DateTime()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
