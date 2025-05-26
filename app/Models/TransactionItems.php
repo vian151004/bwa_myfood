@@ -24,3 +24,4 @@ class TransactionItems extends Model
         return $this->belongsTo(Foods::class, 'foods_id');
     }
 }
+
