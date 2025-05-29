@@ -31,7 +31,7 @@ Route::group([
     Route::get('/', AllFoodPage::class)->name('product.index');
 
     // Fav Food
-    Route::get('/favorite', FavoriteFood::class)->name('product.favorite');
+    Route::get('/favorite', FavoritePage::class)->name('product.favorite');
 
     // Promo
     Route::get('/promo', PromoPage::class)->name('product.promo');
