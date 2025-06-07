@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\TransactionItemsResource\Pages\CreateTransactionItems;
+use App\Filament\Resources\TransactionItemsResource\Pages\EditTransactionItems;
 use App\Filament\Resources\TransactionItemsResource\Pages\ListTransactionItems;
 use App\Filament\Resources\TransactionResource\Pages;
-use App\Filament\Resources\TransactionResource\RelationManagers;
+use App\Models\TransactionItems;
 use App\Models\Transaction;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,14 +14,25 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\Route;
 
 class TransactionResource extends Resource
 {
     protected static ?string $model = Transaction::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+
+    public static function getRecordTitle(?Model $record): string|null|Htmlable
+    {
+        return $record->name;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
 
     public static function form(Form $form): Form
     {
@@ -41,13 +54,18 @@ class TransactionResource extends Resource
                 Forms\Components\TextInput::make('checkout_link')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('barcode_id')
-                    ->required()
-                    ->numeric(),
+                Forms\Components\TextInput::make('barcodes_id')
+                    ->label('QR Code')
+                    ->image() //only image file
+                    ->directory('qr-code') //directory to store
+                    ->disk('public') //disk to store
+                    ->default(function ($recprd) {
+                        return $record->barcode?->image ?? null;
+                    }),
                 Forms\Components\TextInput::make('payment_method')
-                    ->maxLength(255),
+                    ->required(),
                 Forms\Components\TextInput::make('payment_status')
-                    ->maxLength(255),
+                    ->required(),
                 Forms\Components\TextInput::make('subtotal')
                     ->required()
                     ->numeric(),
@@ -86,10 +104,6 @@ class TransactionResource extends Resource
                         'warning' => fn ($state): bool => $state === 'PENDING',
                         'danger' => fn ($state): bool => in_array($state, ['FAILED', 'EXPIRED']),
                     ]),
-                Tables\Columns\TextColumn::make('external_id')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('checkout_link')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('subtotal')
                     ->label('Subtotal')
                     ->numeric()
@@ -119,11 +133,11 @@ class TransactionResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Action::make('See Transaction')
-                ->color('success')
-                ->url(
-                    fn (Transaction $record): string => static::getUrl('transaction-items.index', [
-                        'parent' => $record->id,
-                    ])
+                    ->color('success')
+                    ->url(
+                        fn (Transaction $record): string => static::getUrl('transaction-items.index', [
+                            'parent' => $record->id,
+                        ])
                     ),
             ])
             ->bulkActions([

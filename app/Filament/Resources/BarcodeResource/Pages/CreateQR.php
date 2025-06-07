@@ -28,7 +28,7 @@ class CreateQR extends Page
     public function form(Form $form): Form
     {
         return $form
-            ->  schema([
+            ->schema([
                 Forms\Components\TextInput::make('table_number')
                     ->required()
                     ->default(fn() => $this->table_number)

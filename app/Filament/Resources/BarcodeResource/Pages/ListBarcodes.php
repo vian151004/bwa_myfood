@@ -9,6 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 class ListBarcodes extends ListRecords
 {
     protected static string $resource = BarcodeResource::class;
+    protected static ?string $title = 'QR Codes';
 
     protected function getHeaderActions(): array
     {

@@ -10,14 +10,19 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class BarcodeResource extends Resource
 {
     protected static ?string $model = Barcode::class;
+    protected static ?string $navigationIcon = 'heroicon-o-qr-code';
+    protected static ?string $navigationLabel = 'QR Codes';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
 
     public static function form(Form $form): Form
     {
@@ -43,8 +48,7 @@ class BarcodeResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('table_number')
                     ->searchable(),
-                // Tables\Columns\TextColumn::make('images')
-                //     ->searchable(),
+                Tables\Columns\ImageColumn::make('image'),
                 Tables\Columns\TextColumn::make('qr_value')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('users.name')
@@ -63,16 +67,16 @@ class BarcodeResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('download')
-                ->label('Download QR Code')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->action(function ($record) {
-                    $filepath = storage_path('app/public/' . $record->images);
-                    if (file_exists($filepath)) {
-                        return response()->download($filepath);
-                    } 
-                      
-                    session()->flash('error', 'QR code image not found.');
-                }),
+                    ->label('Download QR Code')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(function ($record) {
+                        $filepath = storage_path('app/public/' . $record->images);
+                        if (file_exists($filepath)) {
+                            return response()->download($filepath);
+                        } 
+                        
+                        session()->flash('error', 'QR code image not found.');
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
